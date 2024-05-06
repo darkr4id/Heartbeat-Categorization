@@ -1,0 +1,1036 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "45173de5",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "papermill": {
+     "duration": 0.007292,
+     "end_time": "2024-05-06T17:01:56.503899",
+     "exception": false,
+     "start_time": "2024-05-06T17:01:56.496607",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Healthy & Abnormal Heartbeat Categorization"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "30f58104",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:01:56.518284Z",
+     "iopub.status.busy": "2024-05-06T17:01:56.517894Z",
+     "iopub.status.idle": "2024-05-06T17:02:12.624348Z",
+     "shell.execute_reply": "2024-05-06T17:02:12.623198Z"
+    },
+    "papermill": {
+     "duration": 16.117214,
+     "end_time": "2024-05-06T17:02:12.627563",
+     "exception": false,
+     "start_time": "2024-05-06T17:01:56.510349",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "\n",
+    "import tensorflow as tf"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "c1dc4e2b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:12.642661Z",
+     "iopub.status.busy": "2024-05-06T17:02:12.641939Z",
+     "iopub.status.idle": "2024-05-06T17:02:14.230497Z",
+     "shell.execute_reply": "2024-05-06T17:02:14.229276Z"
+    },
+    "papermill": {
+     "duration": 1.599378,
+     "end_time": "2024-05-06T17:02:14.233505",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:12.634127",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "dfs = [pd.read_csv('../input/heartbeat/ptbdb_' + x + '.csv') for x in ['normal', 'abnormal']]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "0ab50f11",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:14.248130Z",
+     "iopub.status.busy": "2024-05-06T17:02:14.247677Z",
+     "iopub.status.idle": "2024-05-06T17:02:14.254151Z",
+     "shell.execute_reply": "2024-05-06T17:02:14.252859Z"
+    },
+    "papermill": {
+     "duration": 0.017132,
+     "end_time": "2024-05-06T17:02:14.256870",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.239738",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "for df in dfs:\n",
+    "    df.columns = list(range(len(df.columns)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "866e9c7c",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:14.271046Z",
+     "iopub.status.busy": "2024-05-06T17:02:14.270615Z",
+     "iopub.status.idle": "2024-05-06T17:02:14.338686Z",
+     "shell.execute_reply": "2024-05-06T17:02:14.337632Z"
+    },
+    "papermill": {
+     "duration": 0.078548,
+     "end_time": "2024-05-06T17:02:14.341583",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.263035",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "data = pd.concat(dfs, axis=0).sample(frac=1.0, random_state=1).reset_index(drop=True)\n",
+    "\n",
+    "data = data.rename({187: 'Label'}, axis=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "5682632a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:14.368038Z",
+     "iopub.status.busy": "2024-05-06T17:02:14.367582Z",
+     "iopub.status.idle": "2024-05-06T17:02:14.418668Z",
+     "shell.execute_reply": "2024-05-06T17:02:14.417532Z"
+    },
+    "papermill": {
+     "duration": 0.062518,
+     "end_time": "2024-05-06T17:02:14.421606",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.359088",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>0</th>\n",
+       "      <th>1</th>\n",
+       "      <th>2</th>\n",
+       "      <th>3</th>\n",
+       "      <th>4</th>\n",
+       "      <th>5</th>\n",
+       "      <th>6</th>\n",
+       "      <th>7</th>\n",
+       "      <th>8</th>\n",
+       "      <th>9</th>\n",
+       "      <th>...</th>\n",
+       "      <th>178</th>\n",
+       "      <th>179</th>\n",
+       "      <th>180</th>\n",
+       "      <th>181</th>\n",
+       "      <th>182</th>\n",
+       "      <th>183</th>\n",
+       "      <th>184</th>\n",
+       "      <th>185</th>\n",
+       "      <th>186</th>\n",
+       "      <th>Label</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>0.887073</td>\n",
+       "      <td>0.774146</td>\n",
+       "      <td>0.713224</td>\n",
+       "      <td>0.682021</td>\n",
+       "      <td>0.699851</td>\n",
+       "      <td>0.595840</td>\n",
+       "      <td>0.552749</td>\n",
+       "      <td>0.469539</td>\n",
+       "      <td>0.481426</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>0.684376</td>\n",
+       "      <td>0.395907</td>\n",
+       "      <td>0.288863</td>\n",
+       "      <td>0.262102</td>\n",
+       "      <td>0.231405</td>\n",
+       "      <td>0.234160</td>\n",
+       "      <td>0.218811</td>\n",
+       "      <td>0.207399</td>\n",
+       "      <td>0.212121</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>0.645543</td>\n",
+       "      <td>0.270195</td>\n",
+       "      <td>0.089833</td>\n",
+       "      <td>0.038997</td>\n",
+       "      <td>0.064067</td>\n",
+       "      <td>0.045265</td>\n",
+       "      <td>0.062674</td>\n",
+       "      <td>0.059192</td>\n",
+       "      <td>0.057799</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>0.995881</td>\n",
+       "      <td>0.993821</td>\n",
+       "      <td>0.959835</td>\n",
+       "      <td>0.872297</td>\n",
+       "      <td>0.542739</td>\n",
+       "      <td>0.054583</td>\n",
+       "      <td>0.000000</td>\n",
+       "      <td>0.098867</td>\n",
+       "      <td>0.156540</td>\n",
+       "      <td>0.302781</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>0.996020</td>\n",
+       "      <td>0.323383</td>\n",
+       "      <td>0.109453</td>\n",
+       "      <td>0.035821</td>\n",
+       "      <td>0.264677</td>\n",
+       "      <td>0.342289</td>\n",
+       "      <td>0.367164</td>\n",
+       "      <td>0.402985</td>\n",
+       "      <td>0.401990</td>\n",
+       "      <td>0.420896</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>14545</th>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>0.979786</td>\n",
+       "      <td>0.621879</td>\n",
+       "      <td>0.146849</td>\n",
+       "      <td>0.000000</td>\n",
+       "      <td>0.266944</td>\n",
+       "      <td>0.356718</td>\n",
+       "      <td>0.421522</td>\n",
+       "      <td>0.450059</td>\n",
+       "      <td>0.457788</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>14546</th>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>0.648015</td>\n",
+       "      <td>0.424677</td>\n",
+       "      <td>0.315160</td>\n",
+       "      <td>0.223816</td>\n",
+       "      <td>0.156384</td>\n",
+       "      <td>0.156863</td>\n",
+       "      <td>0.122908</td>\n",
+       "      <td>0.093735</td>\n",
+       "      <td>0.122908</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>14547</th>\n",
+       "      <td>0.931217</td>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>0.465201</td>\n",
+       "      <td>0.150183</td>\n",
+       "      <td>0.035409</td>\n",
+       "      <td>0.033374</td>\n",
+       "      <td>0.049247</td>\n",
+       "      <td>0.070818</td>\n",
+       "      <td>0.078958</td>\n",
+       "      <td>0.087505</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>14548</th>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>0.588291</td>\n",
+       "      <td>0.120570</td>\n",
+       "      <td>0.056962</td>\n",
+       "      <td>0.136076</td>\n",
+       "      <td>0.181646</td>\n",
+       "      <td>0.182595</td>\n",
+       "      <td>0.185759</td>\n",
+       "      <td>0.178481</td>\n",
+       "      <td>0.186076</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>14549</th>\n",
+       "      <td>0.946429</td>\n",
+       "      <td>0.315668</td>\n",
+       "      <td>0.063940</td>\n",
+       "      <td>0.011521</td>\n",
+       "      <td>0.067972</td>\n",
+       "      <td>0.151498</td>\n",
+       "      <td>0.273618</td>\n",
+       "      <td>0.391705</td>\n",
+       "      <td>0.397465</td>\n",
+       "      <td>0.425115</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>0.0</td>\n",
+       "      <td>1.0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>14550 rows × 188 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "              0         1         2         3         4         5         6  \\\n",
+       "0      1.000000  0.887073  0.774146  0.713224  0.682021  0.699851  0.595840   \n",
+       "1      1.000000  0.684376  0.395907  0.288863  0.262102  0.231405  0.234160   \n",
+       "2      1.000000  0.645543  0.270195  0.089833  0.038997  0.064067  0.045265   \n",
+       "3      0.995881  0.993821  0.959835  0.872297  0.542739  0.054583  0.000000   \n",
+       "4      0.996020  0.323383  0.109453  0.035821  0.264677  0.342289  0.367164   \n",
+       "...         ...       ...       ...       ...       ...       ...       ...   \n",
+       "14545  1.000000  0.979786  0.621879  0.146849  0.000000  0.266944  0.356718   \n",
+       "14546  1.000000  0.648015  0.424677  0.315160  0.223816  0.156384  0.156863   \n",
+       "14547  0.931217  1.000000  0.465201  0.150183  0.035409  0.033374  0.049247   \n",
+       "14548  1.000000  0.588291  0.120570  0.056962  0.136076  0.181646  0.182595   \n",
+       "14549  0.946429  0.315668  0.063940  0.011521  0.067972  0.151498  0.273618   \n",
+       "\n",
+       "              7         8         9  ...  178  179  180  181  182  183  184  \\\n",
+       "0      0.552749  0.469539  0.481426  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "1      0.218811  0.207399  0.212121  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "2      0.062674  0.059192  0.057799  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "3      0.098867  0.156540  0.302781  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "4      0.402985  0.401990  0.420896  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "...         ...       ...       ...  ...  ...  ...  ...  ...  ...  ...  ...   \n",
+       "14545  0.421522  0.450059  0.457788  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "14546  0.122908  0.093735  0.122908  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "14547  0.070818  0.078958  0.087505  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "14548  0.185759  0.178481  0.186076  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "14549  0.391705  0.397465  0.425115  ...  0.0  0.0  0.0  0.0  0.0  0.0  0.0   \n",
+       "\n",
+       "       185  186  Label  \n",
+       "0      0.0  0.0    1.0  \n",
+       "1      0.0  0.0    1.0  \n",
+       "2      0.0  0.0    1.0  \n",
+       "3      0.0  0.0    1.0  \n",
+       "4      0.0  0.0    1.0  \n",
+       "...    ...  ...    ...  \n",
+       "14545  0.0  0.0    0.0  \n",
+       "14546  0.0  0.0    1.0  \n",
+       "14547  0.0  0.0    1.0  \n",
+       "14548  0.0  0.0    0.0  \n",
+       "14549  0.0  0.0    1.0  \n",
+       "\n",
+       "[14550 rows x 188 columns]"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2b826945",
+   "metadata": {
+    "papermill": {
+     "duration": 0.006519,
+     "end_time": "2024-05-06T17:02:14.435050",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.428531",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Preprocessing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "7fb9a353",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:14.450918Z",
+     "iopub.status.busy": "2024-05-06T17:02:14.450477Z",
+     "iopub.status.idle": "2024-05-06T17:02:14.489278Z",
+     "shell.execute_reply": "2024-05-06T17:02:14.488096Z"
+    },
+    "papermill": {
+     "duration": 0.049825,
+     "end_time": "2024-05-06T17:02:14.491966",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.442141",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "y = data['Label'].copy()\n",
+    "X = data.drop('Label', axis=1).copy()\n",
+    "\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "3bd4b50f",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:14.507983Z",
+     "iopub.status.busy": "2024-05-06T17:02:14.507490Z",
+     "iopub.status.idle": "2024-05-06T17:02:14.517176Z",
+     "shell.execute_reply": "2024-05-06T17:02:14.516006Z"
+    },
+    "papermill": {
+     "duration": 0.020714,
+     "end_time": "2024-05-06T17:02:14.519721",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.499007",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "8540     0.0\n",
+       "10734    0.0\n",
+       "13652    0.0\n",
+       "5014     1.0\n",
+       "11630    1.0\n",
+       "        ... \n",
+       "905      1.0\n",
+       "5192     1.0\n",
+       "12172    1.0\n",
+       "235      1.0\n",
+       "13349    1.0\n",
+       "Name: Label, Length: 10185, dtype: float64"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "X_train\n",
+    "y_train"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4bee8677",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2023-12-27T14:05:21.124785Z",
+     "iopub.status.busy": "2023-12-27T14:05:21.124419Z",
+     "iopub.status.idle": "2023-12-27T14:05:21.132716Z",
+     "shell.execute_reply": "2023-12-27T14:05:21.131726Z",
+     "shell.execute_reply.started": "2023-12-27T14:05:21.124758Z"
+    },
+    "papermill": {
+     "duration": 0.006629,
+     "end_time": "2024-05-06T17:02:14.533351",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.526722",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8077110c",
+   "metadata": {
+    "papermill": {
+     "duration": 0.006645,
+     "end_time": "2024-05-06T17:02:14.547066",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.540421",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Training"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "5982f86f",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:14.562741Z",
+     "iopub.status.busy": "2024-05-06T17:02:14.562355Z",
+     "iopub.status.idle": "2024-05-06T17:02:14.568984Z",
+     "shell.execute_reply": "2024-05-06T17:02:14.567871Z"
+    },
+    "papermill": {
+     "duration": 0.017752,
+     "end_time": "2024-05-06T17:02:14.571697",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.553945",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(10185, 187)"
+      ]
+     },
+     "execution_count": 8,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "X_train.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "8f726f46",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:14.587895Z",
+     "iopub.status.busy": "2024-05-06T17:02:14.587433Z",
+     "iopub.status.idle": "2024-05-06T17:02:15.210868Z",
+     "shell.execute_reply": "2024-05-06T17:02:15.209479Z"
+    },
+    "papermill": {
+     "duration": 0.644051,
+     "end_time": "2024-05-06T17:02:15.223071",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:14.579020",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Model: \"model\"\n",
+      "_________________________________________________________________\n",
+      " Layer (type)                Output Shape              Param #   \n",
+      "=================================================================\n",
+      " input_1 (InputLayer)        [(None, 187)]             0         \n",
+      "                                                                 \n",
+      " tf.expand_dims (TFOpLambda  (None, 187, 1)            0         \n",
+      " )                                                               \n",
+      "                                                                 \n",
+      " gru (GRU)                   (None, 187, 256)          198912    \n",
+      "                                                                 \n",
+      " flatten (Flatten)           (None, 47872)             0         \n",
+      "                                                                 \n",
+      " dense (Dense)               (None, 1)                 47873     \n",
+      "                                                                 \n",
+      "=================================================================\n",
+      "Total params: 246785 (964.00 KB)\n",
+      "Trainable params: 246785 (964.00 KB)\n",
+      "Non-trainable params: 0 (0.00 Byte)\n",
+      "_________________________________________________________________\n",
+      "None\n"
+     ]
+    }
+   ],
+   "source": [
+    "inputs = tf.keras.Input(shape=(X_train.shape[1],))\n",
+    "\n",
+    "expand = tf.expand_dims(inputs, axis=2)\n",
+    "gru = tf.keras.layers.GRU(256, return_sequences=True)(expand)\n",
+    "flatten = tf.keras.layers.Flatten()(gru)\n",
+    "\n",
+    "outputs = tf.keras.layers.Dense(1, activation='sigmoid')(flatten)\n",
+    "\n",
+    "\n",
+    "model = tf.keras.Model(inputs=inputs, outputs=outputs)\n",
+    "\n",
+    "print(model.summary())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "4e47a4ea",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T17:02:15.244194Z",
+     "iopub.status.busy": "2024-05-06T17:02:15.242784Z",
+     "iopub.status.idle": "2024-05-06T18:02:08.161295Z",
+     "shell.execute_reply": "2024-05-06T18:02:08.159854Z"
+    },
+    "papermill": {
+     "duration": 3594.022183,
+     "end_time": "2024-05-06T18:02:09.254360",
+     "exception": false,
+     "start_time": "2024-05-06T17:02:15.232177",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Epoch 1/50\n",
+      "255/255 [==============================] - 79s 298ms/step - loss: 0.4616 - accuracy: 0.7704 - auc: 0.8134 - val_loss: 0.4123 - val_accuracy: 0.8056 - val_auc: 0.8583\n",
+      "Epoch 2/50\n",
+      "255/255 [==============================] - 79s 309ms/step - loss: 0.4029 - accuracy: 0.8108 - auc: 0.8673 - val_loss: 0.3915 - val_accuracy: 0.8179 - val_auc: 0.8839\n",
+      "Epoch 3/50\n",
+      "255/255 [==============================] - 79s 310ms/step - loss: 0.3668 - accuracy: 0.8274 - auc: 0.8915 - val_loss: 0.3424 - val_accuracy: 0.8522 - val_auc: 0.9074\n",
+      "Epoch 4/50\n",
+      "255/255 [==============================] - 75s 294ms/step - loss: 0.3249 - accuracy: 0.8602 - auc: 0.9180 - val_loss: 0.3292 - val_accuracy: 0.8508 - val_auc: 0.9190\n",
+      "Epoch 5/50\n",
+      "255/255 [==============================] - 77s 301ms/step - loss: 0.3068 - accuracy: 0.8703 - auc: 0.9271 - val_loss: 0.3077 - val_accuracy: 0.8689 - val_auc: 0.9260\n",
+      "Epoch 6/50\n",
+      "255/255 [==============================] - 80s 313ms/step - loss: 0.2653 - accuracy: 0.8918 - auc: 0.9457 - val_loss: 0.2508 - val_accuracy: 0.8999 - val_auc: 0.9522\n",
+      "Epoch 7/50\n",
+      "255/255 [==============================] - 76s 297ms/step - loss: 0.2283 - accuracy: 0.9065 - auc: 0.9605 - val_loss: 0.2149 - val_accuracy: 0.9170 - val_auc: 0.9638\n",
+      "Epoch 8/50\n",
+      "255/255 [==============================] - 80s 315ms/step - loss: 0.2118 - accuracy: 0.9149 - auc: 0.9657 - val_loss: 0.2005 - val_accuracy: 0.9224 - val_auc: 0.9675\n",
+      "Epoch 9/50\n",
+      "255/255 [==============================] - 77s 301ms/step - loss: 0.1884 - accuracy: 0.9240 - auc: 0.9729 - val_loss: 0.2164 - val_accuracy: 0.9161 - val_auc: 0.9701\n",
+      "Epoch 10/50\n",
+      "255/255 [==============================] - 81s 319ms/step - loss: 0.1652 - accuracy: 0.9342 - auc: 0.9790 - val_loss: 0.1834 - val_accuracy: 0.9293 - val_auc: 0.9751\n",
+      "Epoch 11/50\n",
+      "255/255 [==============================] - 82s 319ms/step - loss: 0.1472 - accuracy: 0.9427 - auc: 0.9835 - val_loss: 0.1524 - val_accuracy: 0.9426 - val_auc: 0.9814\n",
+      "Epoch 12/50\n",
+      "255/255 [==============================] - 95s 374ms/step - loss: 0.1360 - accuracy: 0.9462 - auc: 0.9853 - val_loss: 0.1868 - val_accuracy: 0.9298 - val_auc: 0.9787\n",
+      "Epoch 13/50\n",
+      "255/255 [==============================] - 88s 345ms/step - loss: 0.1384 - accuracy: 0.9476 - auc: 0.9857 - val_loss: 0.1479 - val_accuracy: 0.9455 - val_auc: 0.9828\n",
+      "Epoch 14/50\n",
+      "255/255 [==============================] - 90s 354ms/step - loss: 0.1183 - accuracy: 0.9534 - auc: 0.9890 - val_loss: 0.1372 - val_accuracy: 0.9543 - val_auc: 0.9849\n",
+      "Epoch 15/50\n",
+      "255/255 [==============================] - 80s 312ms/step - loss: 0.1126 - accuracy: 0.9574 - auc: 0.9899 - val_loss: 0.2787 - val_accuracy: 0.9003 - val_auc: 0.9605\n",
+      "Epoch 16/50\n",
+      "255/255 [==============================] - 80s 314ms/step - loss: 0.1004 - accuracy: 0.9634 - auc: 0.9920 - val_loss: 0.1685 - val_accuracy: 0.9381 - val_auc: 0.9801\n",
+      "Epoch 17/50\n",
+      "255/255 [==============================] - 82s 320ms/step - loss: 0.0893 - accuracy: 0.9670 - auc: 0.9933 - val_loss: 0.1426 - val_accuracy: 0.9460 - val_auc: 0.9839\n",
+      "Epoch 18/50\n",
+      "255/255 [==============================] - 81s 319ms/step - loss: 0.0860 - accuracy: 0.9689 - auc: 0.9933 - val_loss: 0.1303 - val_accuracy: 0.9514 - val_auc: 0.9878\n",
+      "Epoch 19/50\n",
+      "255/255 [==============================] - 86s 337ms/step - loss: 0.0783 - accuracy: 0.9719 - auc: 0.9948 - val_loss: 0.1627 - val_accuracy: 0.9416 - val_auc: 0.9884\n",
+      "Epoch 20/50\n",
+      "255/255 [==============================] - 79s 308ms/step - loss: 0.0652 - accuracy: 0.9763 - auc: 0.9960 - val_loss: 0.1197 - val_accuracy: 0.9588 - val_auc: 0.9891\n",
+      "Epoch 21/50\n",
+      "255/255 [==============================] - 84s 329ms/step - loss: 0.0612 - accuracy: 0.9779 - auc: 0.9962 - val_loss: 0.1263 - val_accuracy: 0.9524 - val_auc: 0.9901\n",
+      "Epoch 22/50\n",
+      "255/255 [==============================] - 84s 328ms/step - loss: 0.0556 - accuracy: 0.9805 - auc: 0.9971 - val_loss: 0.1223 - val_accuracy: 0.9622 - val_auc: 0.9889\n",
+      "Epoch 23/50\n",
+      "255/255 [==============================] - 80s 313ms/step - loss: 0.0484 - accuracy: 0.9807 - auc: 0.9979 - val_loss: 0.0882 - val_accuracy: 0.9735 - val_auc: 0.9925\n",
+      "Epoch 24/50\n",
+      "255/255 [==============================] - 76s 299ms/step - loss: 0.0445 - accuracy: 0.9847 - auc: 0.9982 - val_loss: 0.1006 - val_accuracy: 0.9710 - val_auc: 0.9909\n",
+      "Epoch 25/50\n",
+      "255/255 [==============================] - 76s 298ms/step - loss: 0.0337 - accuracy: 0.9878 - auc: 0.9989 - val_loss: 0.0936 - val_accuracy: 0.9750 - val_auc: 0.9922\n",
+      "Epoch 26/50\n",
+      "255/255 [==============================] - 88s 344ms/step - loss: 0.0321 - accuracy: 0.9897 - auc: 0.9987 - val_loss: 0.0923 - val_accuracy: 0.9750 - val_auc: 0.9928\n",
+      "Epoch 27/50\n",
+      "255/255 [==============================] - 79s 310ms/step - loss: 0.0297 - accuracy: 0.9901 - auc: 0.9988 - val_loss: 0.0789 - val_accuracy: 0.9799 - val_auc: 0.9948\n",
+      "Epoch 28/50\n",
+      "255/255 [==============================] - 78s 306ms/step - loss: 0.0267 - accuracy: 0.9899 - auc: 0.9993 - val_loss: 0.1048 - val_accuracy: 0.9666 - val_auc: 0.9892\n",
+      "Epoch 29/50\n",
+      "255/255 [==============================] - 81s 318ms/step - loss: 0.0371 - accuracy: 0.9865 - auc: 0.9979 - val_loss: 0.1018 - val_accuracy: 0.9740 - val_auc: 0.9928\n",
+      "Epoch 30/50\n",
+      "255/255 [==============================] - 81s 318ms/step - loss: 0.0173 - accuracy: 0.9936 - auc: 0.9998 - val_loss: 0.1202 - val_accuracy: 0.9681 - val_auc: 0.9887\n",
+      "Epoch 31/50\n",
+      "255/255 [==============================] - 83s 327ms/step - loss: 0.0199 - accuracy: 0.9936 - auc: 0.9994 - val_loss: 0.0771 - val_accuracy: 0.9784 - val_auc: 0.9936\n",
+      "Epoch 32/50\n",
+      "255/255 [==============================] - 85s 334ms/step - loss: 0.0075 - accuracy: 0.9980 - auc: 0.9999 - val_loss: 0.0843 - val_accuracy: 0.9779 - val_auc: 0.9936\n",
+      "Epoch 33/50\n",
+      "255/255 [==============================] - 87s 341ms/step - loss: 0.0334 - accuracy: 0.9869 - auc: 0.9988 - val_loss: 0.1090 - val_accuracy: 0.9720 - val_auc: 0.9924\n",
+      "Epoch 34/50\n",
+      "255/255 [==============================] - 89s 350ms/step - loss: 0.0231 - accuracy: 0.9929 - auc: 0.9989 - val_loss: 0.0884 - val_accuracy: 0.9813 - val_auc: 0.9936\n",
+      "Epoch 35/50\n",
+      "255/255 [==============================] - 81s 319ms/step - loss: 0.0241 - accuracy: 0.9925 - auc: 0.9984 - val_loss: 0.0767 - val_accuracy: 0.9804 - val_auc: 0.9935\n",
+      "Epoch 36/50\n",
+      "255/255 [==============================] - 86s 337ms/step - loss: 0.0115 - accuracy: 0.9959 - auc: 0.9999 - val_loss: 0.1168 - val_accuracy: 0.9774 - val_auc: 0.9900\n",
+      "Epoch 37/50\n",
+      "255/255 [==============================] - 81s 319ms/step - loss: 0.0069 - accuracy: 0.9977 - auc: 1.0000 - val_loss: 0.0784 - val_accuracy: 0.9823 - val_auc: 0.9932\n",
+      "Epoch 38/50\n",
+      "255/255 [==============================] - 83s 327ms/step - loss: 0.0139 - accuracy: 0.9958 - auc: 0.9994 - val_loss: 0.1104 - val_accuracy: 0.9720 - val_auc: 0.9908\n",
+      "Epoch 39/50\n",
+      "255/255 [==============================] - 81s 317ms/step - loss: 0.0373 - accuracy: 0.9859 - auc: 0.9981 - val_loss: 0.0698 - val_accuracy: 0.9833 - val_auc: 0.9952\n",
+      "Epoch 40/50\n",
+      "255/255 [==============================] - 79s 309ms/step - loss: 0.0055 - accuracy: 0.9984 - auc: 1.0000 - val_loss: 0.0829 - val_accuracy: 0.9823 - val_auc: 0.9943\n",
+      "Epoch 41/50\n",
+      "255/255 [==============================] - 82s 321ms/step - loss: 0.0012 - accuracy: 1.0000 - auc: 1.0000 - val_loss: 0.0781 - val_accuracy: 0.9848 - val_auc: 0.9932\n",
+      "Epoch 42/50\n",
+      "255/255 [==============================] - 82s 321ms/step - loss: 4.3232e-04 - accuracy: 1.0000 - auc: 1.0000 - val_loss: 0.0742 - val_accuracy: 0.9858 - val_auc: 0.9958\n",
+      "Epoch 43/50\n",
+      "255/255 [==============================] - 81s 319ms/step - loss: 3.2084e-04 - accuracy: 1.0000 - auc: 1.0000 - val_loss: 0.0756 - val_accuracy: 0.9853 - val_auc: 0.9949\n",
+      "Epoch 44/50\n",
+      "255/255 [==============================] - 80s 314ms/step - loss: 2.3898e-04 - accuracy: 1.0000 - auc: 1.0000 - val_loss: 0.0770 - val_accuracy: 0.9867 - val_auc: 0.9943\n"
+     ]
+    }
+   ],
+   "source": [
+    "model.compile(\n",
+    "    optimizer='adam',\n",
+    "    loss='binary_crossentropy',\n",
+    "    metrics=[\n",
+    "        'accuracy',\n",
+    "        tf.keras.metrics.AUC(name='auc')\n",
+    "    ]\n",
+    ")\n",
+    "\n",
+    "history = model.fit(\n",
+    "    X_train,\n",
+    "    y_train,\n",
+    "    validation_split=0.2,\n",
+    "    batch_size=32,\n",
+    "    epochs=50,\n",
+    "    callbacks=[\n",
+    "        tf.keras.callbacks.EarlyStopping(\n",
+    "            monitor='val_loss',\n",
+    "            patience=5,\n",
+    "            restore_best_weights=True\n",
+    "        )\n",
+    "    ]\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cdf41490",
+   "metadata": {
+    "papermill": {
+     "duration": 1.08305,
+     "end_time": "2024-05-06T18:02:11.508458",
+     "exception": false,
+     "start_time": "2024-05-06T18:02:10.425408",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "## Results"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "d5beef5e",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T18:02:13.755068Z",
+     "iopub.status.busy": "2024-05-06T18:02:13.754264Z",
+     "iopub.status.idle": "2024-05-06T18:03:00.426043Z",
+     "shell.execute_reply": "2024-05-06T18:03:00.424652Z"
+    },
+    "papermill": {
+     "duration": 47.754484,
+     "end_time": "2024-05-06T18:03:00.429001",
+     "exception": false,
+     "start_time": "2024-05-06T18:02:12.674517",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "results = model.evaluate(X_test, y_test, verbose=0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "5b52cde9",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2024-05-06T18:03:02.677140Z",
+     "iopub.status.busy": "2024-05-06T18:03:02.676201Z",
+     "iopub.status.idle": "2024-05-06T18:03:02.682131Z",
+     "shell.execute_reply": "2024-05-06T18:03:02.681256Z"
+    },
+    "papermill": {
+     "duration": 1.181391,
+     "end_time": "2024-05-06T18:03:02.684851",
+     "exception": false,
+     "start_time": "2024-05-06T18:03:01.503460",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Test Accuracy: 98.10%\n",
+      "     Test AUC: 0.9947\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"Test Accuracy: {:.2f}%\".format(results[1] * 100))\n",
+    "print(\"     Test AUC: {:.4f}\".format(results[2]))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "78c8a10e",
+   "metadata": {
+    "papermill": {
+     "duration": 1.077414,
+     "end_time": "2024-05-06T18:03:04.839119",
+     "exception": false,
+     "start_time": "2024-05-06T18:03:03.761705",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [
+    {
+     "datasetId": 29414,
+     "sourceId": 37484,
+     "sourceType": "datasetVersion"
+    }
+   ],
+   "dockerImageVersionId": 30626,
+   "isGpuEnabled": false,
+   "isInternetEnabled": true,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.12"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 3675.642197,
+   "end_time": "2024-05-06T18:03:07.745326",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2024-05-06T17:01:52.103129",
+   "version": "2.4.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
